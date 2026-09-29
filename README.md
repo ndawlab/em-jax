@@ -18,6 +18,15 @@ but gets the job done.
 ## Install
 
 ```
+pip install git+https://github.com/ndawlab/em-jax.git
+```
+
+To instead work on `pyem` itself (e.g. to run the test suite), clone the
+repo and install it editable, with the `test` extra (just `pytest`):
+
+```
+git clone https://github.com/ndawlab/em-jax.git
+cd em-jax
 pip install -e ".[test]"
 ```
 
@@ -128,6 +137,15 @@ dimension *around* that per-trial recurrence, and the per-trial
 computation is usually too small to offset the dispatch/synchronization
 overhead of doing that well. Expect a somewhat noticeable delay on the
 first call to any given problem shape either way, from JIT compilation.
+
+## Tests
+
+```
+pytest tests/
+```
+
+Validates against reference output from `EM.jl`, checked in under
+`tests/fixtures/`.
 
 ## Writing a new likelihood
 
