@@ -1,0 +1,28 @@
+[project]
+name = "pyem"
+version = "0.1.0"
+description = "Python/JAX port of EM.jl's core hierarchical EM + Laplace-approximation fitting (qlik, em_fit, emerrors, ilaplace), for users who prefer a Python-facing interface."
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "jax>=0.11",
+    "jaxlib>=0.11",
+    "optimistix>=0.1",
+    "equinox>=0.13",
+    "lineax>=0.1",
+    "jaxtyping>=0.3",
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pyem*"]
