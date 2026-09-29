@@ -157,7 +157,8 @@ subs = list(range(1, NS + 1))
 X = jnp.stack([jnp.ones(NS), jnp.array(cov)], axis=1)
 
 # the key difference is you need to tell EMModel which columns to extract
-# for the per-trial data (seqlik needs four, not two: first-stage
+# for the per-trial data, in the order the likfun expects them
+# columns are the per-trial data (seqlik needs four, not two: first-stage
 # choice, second-stage choice, reward, second-stage state).
 model = em.EMModel(data, X, cols=("ch1", "ch2", "mn", "st"), subs=subs,
                     likfun=em.seqlik_nll, nparam=6,
