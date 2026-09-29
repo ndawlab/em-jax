@@ -174,19 +174,14 @@ def qlik_nll(params):
 ```
 
 This is what `qlik_nll`/`jianlik_nll` actually are in `pyem/likelihoods.py`.
-The decorator handles padding and genuine missed-response trials the same
-way uniformly: a trial is skipped (state unchanged, `ll=0`) if it's padding
-*or* if its first data array is `<= 0`, matching this package's established
-`choice > 0` convention.
+The decorator handles padding and missed-response trials the same way: a
+trial is skipped (state unchanged, `ll=0`) if it's padding *or* if its first
+data array is `<= 0`, exactly as if it had been deleted from the data.
+Anything the model needs from earlier trials, such as the previous choice
+for a perseveration term, just goes in `state`.
 
-`seqlik_nll` also uses it, but needs one more thing: a real trial can still
-have a *second*-stage response missing even though the first-stage one
-isn't (`c1` present, `c2` <= 0) -- that's genuine model logic (count ll1
-but not ll2, leave state unchanged), not something generic wrapper masking
-should special-case, so it's handled directly inside `step` with an
-ordinary `jnp.where`, exactly like a hand-written per-subject loop would.
-The one piece the decorator does still need to provide is `track_prev=True`
-(`step(state, prev, *trial_arrays)`): seqlik's perseveration term needs the
-raw previous trial's first-array value, which must advance unconditionally
-even on a miss -- the opposite of `state`'s freeze-on-invalid rule, so it
-can't be lumped in with `state` itself.
+`seqlik_nll` is an example of both: it carries the previous first-stage
+choice in its state, and since a real trial can still have its
+*second*-stage response missing (`c1` present, `c2 <= 0`), it handles that
+case inside `step` with an ordinary `jnp.where` (count `ll1` but not `ll2`,
+leave the Q values unchanged).

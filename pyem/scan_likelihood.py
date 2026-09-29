@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 
 
-def scan_likelihood(step_maker=None, *, track_prev=False):
+def scan_likelihood(step_maker=None):
     """Decorator that turns a per-trial step function into a full
     negative-log-likelihood function, hiding the lax.scan boilerplate and
     the ragged-data masking convention from the model author.
@@ -19,11 +19,6 @@ def scan_likelihood(step_maker=None, *, track_prev=False):
             responses needs is ordinary model logic and belongs inside
             step itself (see seqlik_nll for an example), not something
             this decorator handles.
-        track_prev: if True, step additionally receives the *raw* previous
-            trial's first data array value as a second argument, before
-            the trial's own data: step(state, prev, *trial_arrays) ->
-            (new_state, ll). For models with a perseveration/sticky-choice
-            term that needs "what was chosen last trial" as an input.
 
     Returns:
         A decorator producing nll(params, *data, valid_mask) -> scalar,
@@ -31,18 +26,10 @@ def scan_likelihood(step_maker=None, *, track_prev=False):
         to em_fit/loocv as-is.
 
     Notes:
-        A trial is skipped (state frozen to its pre-trial value, ll=0) if
-        it's padding or the first data array is <= 0 -- state gets this
-        uniform freeze-on-invalid treatment precisely because it's meant
-        to represent "what's genuinely been learned so far," which a
-        missing/padding trial must leave untouched.
-
-        track_prev's prev value is deliberately NOT part of state and
-        doesn't get the freeze-on-invalid treatment: it always advances to
-        this trial's raw first array value, even 0 (a miss or padding), so
-        perseveration correctly sees "no genuine previous choice" right
-        after a gap, rather than reaching back through it to a stale one
-        (seqlik_nll uses this for exactly that reason).
+        A trial is skipped (state unchanged, ll=0) if it's padding or the
+        first data array is <= 0, exactly as if it had been deleted from
+        the data. Anything the model needs from earlier trials (e.g. the
+        previous choice, for perseveration) should be carried in state.
 
     Usage:
 
@@ -64,25 +51,17 @@ def scan_likelihood(step_maker=None, *, track_prev=False):
         @functools.wraps(step_maker)
         def nll(params, *data, valid_mask):
             init_state, step = step_maker(params)
-            prev0 = jnp.array(0, dtype=data[0].dtype)
-            init_carry = (init_state, prev0) if track_prev else init_state
 
-            def scan_step(carry, xs):
+            def scan_step(state, xs):
                 *trial_arrays, valid = xs
                 valid = valid & (trial_arrays[0] > 0)
-                if track_prev:
-                    state, prev = carry
-                    new_state, ll = step(state, prev, *trial_arrays)
-                else:
-                    state = carry
-                    new_state, ll = step(state, *trial_arrays)
+                new_state, ll = step(state, *trial_arrays)
                 ll = jnp.where(valid, ll, 0.0)
-                masked_state = jax.tree_util.tree_map(
+                new_state = jax.tree_util.tree_map(
                     lambda n, o: jnp.where(valid, n, o), new_state, state)
-                new_carry = (masked_state, trial_arrays[0]) if track_prev else masked_state
-                return new_carry, ll
+                return new_state, ll
 
-            _, lls = jax.lax.scan(scan_step, init_carry, (*data, valid_mask))
+            _, lls = jax.lax.scan(scan_step, init_state, (*data, valid_mask))
             return -jnp.sum(lls)
 
         return nll

@@ -1,9 +1,9 @@
-"""Targeted validation of seqlik_nll's genuine-missing-response handling
-(as opposed to trailing padding, which is all the simseq-generated
-reference_data_seqlik.csv fixture exercises): a mid-sequence c1 miss, and
-a mid-sequence c1-present-but-c2-missing trial, plus a perseveration term
-that must correctly reset after a miss. See
-scripts/gen_reference_seqlik_missing.jl for the hand-crafted trials."""
+"""Targeted validation of seqlik_nll's missing-response handling (as
+opposed to trailing padding, which is all the simseq-generated
+reference_data_seqlik.csv fixture exercises): a mid-sequence c1 miss, which
+should behave exactly as if the trial were deleted (including for
+perseveration), and a mid-sequence c1-present-but-c2-missing trial. The
+Julia reference NLL is computed with c1-missed trials deleted."""
 from pathlib import Path
 
 import jax

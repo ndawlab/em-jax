@@ -86,7 +86,7 @@ def _softmaximum(a, b):
     return p * a + (1 - p) * b
 
 
-@scan_likelihood(track_prev=True)
+@scan_likelihood
 def seqlik_nll(params):
     """Negative log-likelihood for the two-step decision task model of
     Gillan et al. (eLife, 2015).
@@ -109,16 +109,16 @@ def seqlik_nll(params):
 
     Notes:
         Compared to the earlier examples, this takes more info per trial
-        (c1, c2, r, s) and also the previous choice (track_prev above)
-        The ommission of skipped trials is more complicated: this function
-        is called if there is a c1 but must check if c2 is missing.
+        (c1, c2, r, s) and carries the previous first-stage choice in state
+        for the perseveration term. Trials with c1 missing are skipped
+        entirely; a trial with c1 present but c2 missing counts ll1 only.
     """
     beta1m, beta1t0, beta1t1, beta2 = params[0], params[1], params[2], params[3]
     lr = 0.5 + 0.5 * erf(params[4] / jnp.sqrt(2.0))
     ps = params[5]
 
-    def step(state, prevc, c1, c2, r, s):
-        Q0, Q1 = state
+    def step(state, c1, c2, r, s):
+        Q0, Q1, prevc = state
         idx1 = c1 - 1
         sidx = s - 1
 
@@ -142,6 +142,6 @@ def seqlik_nll(params):
         Q0_new = jnp.where(valid2, Q0_upd, Q0)
         Q1_new = jnp.where(valid2, Q1_upd, Q1)
 
-        return (Q0_new, Q1_new), ll1 + ll2
+        return (Q0_new, Q1_new, c1.astype(jnp.int32)), ll1 + ll2
 
-    return (jnp.zeros((3, 2)), jnp.zeros(2)), step
+    return (jnp.zeros((3, 2)), jnp.zeros(2), jnp.zeros((), dtype=jnp.int32)), step
