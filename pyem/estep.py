@@ -112,7 +112,7 @@ def subject_laplace_fit(x_init, mu, inv_sigma, logdet_sigma, data, valid_mask, l
     def fitfun(x):
         return gaussianprior_nll(x, mu, inv_sigma, logdet_sigma, data, valid_mask, likfun)
 
-    solver = optx.LBFGS(rtol=1e-8, atol=1e-8)
+    solver = optx.LBFGS(rtol=1e-6, atol=1e-6)
     sol = optx.minimise(lambda x, _: fitfun(x), solver, x_init, max_steps=max_steps, throw=False)
     xhat = sol.value
     l0 = fitfun(xhat)

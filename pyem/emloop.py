@@ -236,7 +236,7 @@ def _normalize_startsigma(startsigma, full):
     return startsigma if full else jnp.diag(startsigma)
 
 
-def em_fit(model, startbetas, startsigma, emtol=1e-4, maxiter=200, max_steps=256, startx=None,
+def em_fit(model, startbetas, startsigma, emtol=1e-3, maxiter=100, max_steps=256, startx=None,
            full=False, skewcorrect=False, skewcorrect_maxcorr=1.0, quiet=10):
     """Fits a hierarchical model via Expectation-Maximization: alternates a
     per-subject E-step (MAP + Laplace covariance under the current
@@ -257,7 +257,8 @@ def em_fit(model, startbetas, startsigma, emtol=1e-4, maxiter=200, max_steps=256
             (nparam, nparam) matrix (full still decides how it's used,
             taking its diagonal if full=False).
         emtol: convergence tolerance on the relative change in the packed
-            group-level parameters between outer iterations.
+            group-level parameters between outer iterations (absolute change
+            for parameters below 0.01 in magnitude).
         maxiter: maximum number of outer EM iterations.
         max_steps: maximum LBFGS iterations for each subject's MAP fit.
         startx: optionally warm-starts the per-subject solve from
@@ -330,7 +331,9 @@ def em_fit(model, startbetas, startsigma, emtol=1e-4, maxiter=200, max_steps=256
         betas, sigma = mstep(X, x, h, nreg, full=full)
 
         cur = packed(betas, sigma)
-        change = float(jnp.max(jnp.abs((cur - prev) / prev)))
+        # relative change, but absolute for parameters near zero (|x| < 0.01),
+        # so group-level parameters near 0 can still converge
+        change = float(jnp.max(jnp.abs(cur - prev) / jnp.maximum(jnp.abs(prev), 0.01)))
         prev = cur
         done = change < emtol
 
