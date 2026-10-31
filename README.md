@@ -32,7 +32,10 @@ pip install -e ".[test]"
 
 ## Examples
 
-see examples/example.py or example.ipynb
+see examples/example.py or example.ipynb. For worked examples on real
+datasets (a patent race game and the two-step task, each fit with
+covariates and compared across models), see examples/dataexamples.ipynb,
+which downloads its data.
 
 or, minimally:
 
